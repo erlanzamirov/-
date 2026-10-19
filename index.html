@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Финансы</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Финансы">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #111111; --muted: #8a8a8e; --line: #e8e8ea; --chip: #f2f2f4;
+    --green: #5b8a6a; --red: #b0615c;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #000000; --fg: #f2f2f2; --muted: #8e8e93; --line: #232325; --chip: #1c1c1e;
+            --green: #7fa88c; --red: #c98580; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.4 -apple-system, "SF Pro Text", system-ui, sans-serif; }
+  body { max-width: 480px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px calc(env(safe-area-inset-bottom, 0px) + 40px); }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .tabs { display: flex; justify-content: center; gap: 28px; padding: 4px 0 14px; }
+  .tabs button { color: var(--muted); font-size: 16px; padding: 6px 2px; }
+  .tabs button.on { color: var(--fg); font-weight: 600; }
+
+  .balance { text-align: center; padding: 8px 0 24px; }
+  .balance .label { color: var(--muted); font-size: 14px; }
+  .balance .value { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; background: var(--chip); font-size: 14px; padding: 8px 14px; border-radius: 999px; }
+  .chip.on { background: var(--fg); color: var(--bg); }
+  .dates { display: flex; gap: 10px; margin: 14px 0 22px; }
+  .dates label { flex: 1; font-size: 12px; color: var(--muted); }
+  .dates input { display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 16px; color: var(--fg);
+    background: var(--chip); border: 0; border-radius: 10px; padding: 9px 10px; }
+  .totals { display: flex; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .totals > div { flex: 1; padding: 14px 0; }
+  .totals > div + div { padding-left: 16px; border-left: 1px solid var(--line); }
+  .totals .label { font-size: 13px; color: var(--muted); }
+  .totals .value { font-size: 22px; font-weight: 600; }
+  .inc { color: var(--green); } .exp { color: var(--red); }
+  h2 { font-size: 15px; font-weight: 600; margin: 26px 0 6px; }
+  .row { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; padding: 10px 0; }
+  .ico { font-size: 20px; text-align: center; }
+  .bar { grid-column: 2 / 4; height: 3px; background: var(--chip); border-radius: 2px; margin-top: -4px; }
+  .bar i { display: block; height: 100%; border-radius: 2px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+  .status { text-align: center; color: var(--muted); font-size: 13px; min-height: 18px; margin-top: 16px; }
+
+  .op { border-bottom: 1px solid var(--line); }
+  .head { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; padding: 12px 0; cursor: pointer; }
+  .mid { min-width: 0; }
+  .mid .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mid .cm { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .right { text-align: right; }
+  .right .dt { font-size: 12px; color: var(--muted); }
+  .edit { padding: 2px 0 14px 40px; }
+  .edit input, .edit select, .setup input { display: block; width: 100%; font: inherit; font-size: 16px; color: var(--fg);
+    background: var(--chip); border: 0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; appearance: none; -webkit-appearance: none; }
+  .actions { display: flex; gap: 22px; padding-top: 4px; }
+  .actions button { font-size: 15px; color: var(--muted); padding: 6px 0; }
+  .actions .save { color: var(--fg); font-weight: 600; }
+  .actions .del { color: var(--red); margin-left: auto; }
+  .more { display: block; margin: 18px auto 0; color: var(--muted); font-size: 15px; padding: 8px 16px; }
+
+  .setup { padding-top: 40px; }
+  .setup h1 { font-size: 22px; margin: 0 0 6px; }
+  .setup p { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+  .setup label { font-size: 12px; color: var(--muted); }
+  .setup .go { font-weight: 600; font-size: 16px; padding: 10px 0; }
+  .footer { text-align: center; margin-top: 36px; }
+  .footer button { color: var(--muted); font-size: 13px; padding: 8px; }
+</style>
+</head>
+<body>
+  <nav class="tabs" id="tabs" hidden>
+    <button id="tabSum" class="on">Сводка</button>
+    <button id="tabOps">Операции</button>
+  </nav>
+
+  <section id="viewSetup" class="setup" hidden>
+    <h1>Подключение</h1>
+    <p>Вставьте ссылку на скрипт и ключ. Они сохранятся только на этом устройстве.</p>
+    <label for="setupUrl">Ссылка на скрипт (заканчивается на /exec)</label>
+    <input id="setupUrl" type="url" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <label for="setupKey">Ключ</label>
+    <input id="setupKey" type="text" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button class="go" id="connect">Подключить</button>
+    <div class="status" id="setupMsg"></div>
+  </section>
+
+  <section id="viewSum" hidden>
+    <div class="balance">
+      <div class="label">Баланс</div>
+      <div class="value num" id="balance">…</div>
+    </div>
+
+    <div class="chips" id="chips"></div>
+    <div class="dates">
+      <label>С<input type="date" id="from"></label>
+      <label>По<input type="date" id="to"></label>
+    </div>
+
+    <div class="totals">
+      <div><div class="label">Доходы</div><div class="value num inc" id="income">…</div></div>
+      <div><div class="label">Расходы</div><div class="value num exp" id="expense">…</div></div>
+    </div>
+
+    <h2>Доходы по категориям</h2>
+    <div id="incomeCats"></div>
+    <h2>Расходы по категориям</h2>
+    <div id="expenseCats"></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section id="viewOps" hidden>
+    <div id="list"></div>
+    <button class="more" id="more" hidden>Ещё</button>
+    <div class="status" id="opsStatus"></div>
+  </section>
+
+  <div class="footer" id="footer" hidden><button id="reset">Сменить подключение</button></div>
+
+<script>
+  const ICONS = {
+    "Такси": "🚕", "Еда": "🍽️", "Покупки": "🛍️", "Одежда": "👕", "Отдых": "🌴",
+    "Дал в долг": "🤝", "Зарплата": "💼", "Подработка": "🛠️", "Подарок": "🎁",
+    "От родственников": "🎁", "Возврат долга": "↩️", "Другое": "•"
+  };
+  // Списки категорий для редактирования (должны совпадать с командой)
+  const CATS = {
+    "Расход": ["Такси", "Еда", "Покупки", "Одежда", "Отдых", "Дал в долг", "Другое"],
+    "Доход": ["Зарплата", "Подработка", "От родственников", "Возврат долга", "Другое"]
+  };
+
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, "0");
+  const iso = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const fmt = n => Math.round(n).toLocaleString("ru-RU");
+  const fmtAmount = n => (Math.round(n * 100) / 100).toLocaleString("ru-RU");
+
+  function iconAndName(cat) {
+    const s = String(cat || "Другое");
+    const m = s.match(/^((?:\p{Extended_Pictographic}[\uFE0F\u200D]*)+)\s*(.*)$/u);
+    if (m) return [m[1], m[2] || s];
+    return [ICONS[s] || "•", s];
+  }
+
+  /* ---------- Связь со скриптом ---------- */
+  let API_URL = localStorage.getItem("fin_url") || "";
+  let API_KEY = localStorage.getItem("fin_key") || "";
+
+  async function api(payload) {
+    let res;
+    try {
+      // Строка без заголовков уходит как text/plain: так браузер не делает предзапрос, который Apps Script не поддерживает
+      res = await fetch(API_URL, { method: "POST", body: JSON.stringify(Object.assign({ key: API_KEY }, payload)) });
+    } catch (e) { throw new Error("Нет связи со скриптом"); }
+    let r;
+    try { r = await res.json(); } catch (e) { throw new Error("Скрипт ответил не так, как ожидалось"); }
+    if (!r.ok) {
+      const err = new Error(r.error === "auth" ? "Неверный ключ" : (r.error || "Ошибка"));
+      err.auth = r.error === "auth";
+      throw err;
+    }
+    return r;
+  }
+
+  function fail(err, el) {
+    if (err.auth) { showSetup("Неверный ключ"); return; }
+    el.textContent = "Ошибка: " + err.message;
+  }
+
+  /* ---------- Экраны ---------- */
+  function hideAll() {
+    ["tabs", "viewSetup", "viewSum", "viewOps", "footer"].forEach(id => $(id).hidden = true);
+  }
+
+  function showSetup(msg) {
+    hideAll();
+    $("viewSetup").hidden = false;
+    $("setupUrl").value = API_URL;
+    $("setupKey").value = "";
+    $("setupMsg").textContent = msg || "";
+  }
+
+  $("connect").onclick = async () => {
+    const u = $("setupUrl").value.trim(), k = $("setupKey").value.trim();
+    if (!/^https:\/\/script\.google\.com\//.test(u) || !k) {
+      $("setupMsg").textContent = "Заполните оба поля. Ссылка должна начинаться с https://script.google.com/";
+      return;
+    }
+    API_URL = u; API_KEY = k;
+    $("setupMsg").textContent = "Проверка…";
+    try {
+      await api({ action: "list", before: 0, limit: 1 });
+      localStorage.setItem("fin_url", u);
+      localStorage.setItem("fin_key", k);
+      start();
+    } catch (err) { $("setupMsg").textContent = err.message; }
+  };
+
+  $("reset").onclick = () => showSetup("");
+
+  let dirty = false, opsLoaded = false, view = "sum";
+  function show(v) {
+    view = v;
+    $("tabs").hidden = false; $("footer").hidden = false; $("viewSetup").hidden = true;
+    $("viewSum").hidden = v !== "sum";
+    $("viewOps").hidden = v !== "ops";
+    $("tabSum").classList.toggle("on", v === "sum");
+    $("tabOps").classList.toggle("on", v === "ops");
+    if (v === "ops" && !opsLoaded) loadOps(true);
+    if (v === "sum" && dirty) { dirty = false; load(); }
+  }
+  $("tabSum").onclick = () => show("sum");
+  $("tabOps").onclick = () => show("ops");
+
+  /* ---------- Сводка ---------- */
+  const today = new Date();
+  const PRESETS = [
+    ["Сегодня", () => [today, today]],
+    ["Неделя", () => [new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6), today]],
+    ["Месяц", () => [new Date(today.getFullYear(), today.getMonth(), 1), today]],
+    ["Прошлый месяц", () => [new Date(today.getFullYear(), today.getMonth() - 1, 1), new Date(today.getFullYear(), today.getMonth(), 0)]],
+    ["Год", () => [new Date(today.getFullYear(), 0, 1), today]],
+    ["Всё время", () => [new Date(2000, 0, 1), today]]
+  ];
+
+  function renderChips(active) {
+    $("chips").innerHTML = "";
+    PRESETS.forEach(([name, range], i) => {
+      const b = document.createElement("button");
+      b.className = "chip" + (i === active ? " on" : "");
+      b.textContent = name;
+      b.onclick = () => {
+        const [a, z] = range();
+        $("from").value = iso(a); $("to").value = iso(z);
+        renderChips(i); load();
+      };
+      $("chips").appendChild(b);
+    });
+  }
+
+  function renderCats(el, list, cls) {
+    el.innerHTML = "";
+    if (!list.length) { el.innerHTML = '<div class="empty">Нет операций за период</div>'; return; }
+    const max = list[0].sum;
+    list.forEach(c => {
+      const [icon, label] = iconAndName(c.name);
+      const row = document.createElement("div"); row.className = "row";
+      const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = icon;
+      const name = document.createElement("span"); name.textContent = label;
+      const sum = document.createElement("span"); sum.className = "num"; sum.textContent = fmt(c.sum);
+      const bar = document.createElement("div"); bar.className = "bar";
+      const fill = document.createElement("i"); fill.style.width = Math.max(3, c.sum / max * 100) + "%";
+      fill.style.background = "var(--" + cls + ")";
+      bar.appendChild(fill);
+      row.append(ico, name, sum, bar);
+      el.appendChild(row);
+    });
+  }
+
+  let sumReq = 0;
+  async function load() {
+    const from = $("from").value, to = $("to").value;
+    if (!from || !to) return;
+    const id = ++sumReq;
+    $("status").textContent = "Загрузка…";
+    try {
+      const { data: d } = await api({ action: "summary", from, to });
+      if (id !== sumReq) return; // пришёл устаревший ответ
+      $("balance").textContent = fmt(d.balance);
+      $("income").textContent = fmt(d.income);
+      $("expense").textContent = fmt(d.expense);
+      renderCats($("incomeCats"), d.incomeCats, "green");
+      renderCats($("expenseCats"), d.expenseCats, "red");
+      $("status").textContent = "";
+    } catch (err) { fail(err, $("status")); }
+  }
+
+  $("from").onchange = $("to").onchange = () => { renderChips(-1); load(); };
+
+  /* ---------- Операции ---------- */
+  let ops = [], cursor = 0, opened = null, loading = false;
+
+  async function loadOps(reset) {
+    if (loading) return;
+    if (reset) { ops = []; cursor = 0; opened = null; $("list").innerHTML = ""; opsLoaded = true; }
+    loading = true;
+    $("opsStatus").textContent = "Загрузка…";
+    $("more").hidden = true;
+    try {
+      const r = await api({ action: "list", before: cursor, limit: 20 });
+      r.items.forEach(it => { ops.push(it); $("list").appendChild(buildOp(it)); });
+      if (r.items.length) cursor = r.items[r.items.length - 1].row;
+      $("more").hidden = !r.hasMore;
+      $("opsStatus").textContent = ops.length ? "" : "Операций пока нет";
+    } catch (err) { fail(err, $("opsStatus")); }
+    loading = false;
+  }
+  $("more").onclick = () => loadOps(false);
+
+  function buildOp(it) {
+    it.el = document.createElement("div");
+    it.el.className = "op";
+    renderOp(it);
+    return it.el;
+  }
+
+  function renderOp(it) {
+    const isInc = it.type === "Доход";
+    const [icon, label] = iconAndName(it.category);
+    it.open = false;
+    it.el.innerHTML = "";
+
+    const head = document.createElement("div"); head.className = "head";
+    const ico = document.createElement("span"); ico.className = "ico"; ico.textContent = icon;
+    const mid = document.createElement("div"); mid.className = "mid";
+    const name = document.createElement("div"); name.className = "name"; name.textContent = label;
+    const cm = document.createElement("div"); cm.className = "cm"; cm.textContent = it.comment || "";
+    mid.append(name);
+    if (it.comment) mid.append(cm);
+    const right = document.createElement("div"); right.className = "right";
+    const amt = document.createElement("div"); amt.className = "num " + (isInc ? "inc" : "exp");
+    amt.textContent = typeof it.amount === "number"
+      ? (isInc ? "+" : "−") + fmtAmount(it.amount) : String(it.amount);
+    const dt = document.createElement("div"); dt.className = "dt"; dt.textContent = it.date;
+    right.append(amt, dt);
+    head.append(ico, mid, right);
+    head.onclick = () => toggle(it);
+    it.el.append(head);
+  }
+
+  function toggle(it) {
+    if (opened && opened !== it) renderOp(opened);
+    if (it.open) { renderOp(it); opened = null; }
+    else { openEdit(it); opened = it; }
+  }
+
+  function openEdit(it) {
+    it.open = true;
+    const box = document.createElement("div"); box.className = "edit";
+
+    const amount = document.createElement("input");
+    amount.type = "text"; amount.inputMode = "decimal"; amount.placeholder = "Сумма";
+    amount.value = typeof it.amount === "number" ? String(it.amount).replace(".", ",") : "";
+
+    const sel = document.createElement("select");
+    const list = (CATS[it.type] || []).slice();
+    if (it.category && list.indexOf(it.category) < 0) list.unshift(it.category);
+    list.forEach(c => {
+      const o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      if (c === it.category) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    const comment = document.createElement("input");
+    comment.type = "text"; comment.placeholder = "Комментарий"; comment.value = it.comment || "";
+
+    const actions = document.createElement("div"); actions.className = "actions";
+    const save = document.createElement("button"); save.className = "save"; save.textContent = "Сохранить";
+    const cancel = document.createElement("button"); cancel.textContent = "Отмена";
+    const del = document.createElement("button"); del.className = "del"; del.textContent = "Удалить";
+    actions.append(save, cancel, del);
+    box.append(amount, sel, comment, actions);
+    it.el.append(box);
+
+    cancel.onclick = () => { renderOp(it); opened = null; };
+
+    save.onclick = async () => {
+      const a = parseFloat(amount.value.replace(/[\s\u00a0]/g, "").replace(",", "."));
+      if (isNaN(a) || a <= 0) { amount.focus(); return; }
+      const cat = sel.value, cm = comment.value.trim();
+      save.textContent = "…"; save.disabled = true;
+      try {
+        await api({ action: "update", row: it.row, t: it.t, amount: a, category: cat, comment: cm });
+        it.amount = a; it.category = cat; it.comment = cm;
+        renderOp(it); opened = null; dirty = true;
+      } catch (err) { actionFail(err, save, "Сохранить"); }
+    };
+
+    // Удаление: первое нажатие просит подтвердить, второе удаляет
+    let armed = null;
+    del.onclick = async () => {
+      if (!armed) {
+        del.textContent = "Точно удалить?";
+        armed = setTimeout(() => { armed = null; del.textContent = "Удалить"; }, 3000);
+        return;
+      }
+      clearTimeout(armed);
+      del.textContent = "…"; del.disabled = true;
+      try {
+        await api({ action: "delete", row: it.row, t: it.t });
+        it.el.remove();
+        ops = ops.filter(o => o !== it);
+        ops.forEach(o => { if (o.row > it.row) o.row--; }); // строки ниже сдвинулись
+        opened = null; dirty = true;
+        if (!ops.length) $("opsStatus").textContent = "Операций пока нет";
+      } catch (err) { actionFail(err, del, "Удалить"); }
+    };
+  }
+
+  function actionFail(err, btn, label) {
+    btn.disabled = false; btn.textContent = label;
+    fail(err, $("opsStatus"));
+    if (/изменился/.test(err.message)) loadOps(true);
+  }
+
+  /* ---------- Старт ---------- */
+  function start() {
+    show("sum");
+    const [a, z] = PRESETS[2][1]();
+    $("from").value = iso(a); $("to").value = iso(z);
+    renderChips(2);
+    opsLoaded = false;
+    load();
+  }
+
+  if (API_URL && API_KEY) start(); else showSetup("");
+</script>
+</body>
+</html>
